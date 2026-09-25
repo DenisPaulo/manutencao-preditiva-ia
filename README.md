@@ -11,7 +11,7 @@
 
 🔗 **Demo:** _link do Streamlit Cloud (em breve)_
 
-<!-- GIF/print do painel aqui quando o passo 8 estiver pronto: docs/painel.gif -->
+![Painel Streamlit: simulador com o caso de ferramenta gasta](docs/app-preview.png)
 
 ---
 
@@ -40,8 +40,6 @@ Em manutenção, parar a máquina tarde demais custa uma quebra; parar cedo dema
 
 ## Resultado
 
-<!-- Preencher SOMENTE com números da execução real (conjunto de teste). -->
-
 | Modelo | Recall (falha) | Precisão (falha) | F1 | PR-AUC |
 |---|---|---|---|---|
 | Regressão logística | 0,765 | 0,308 | 0,439 | 0,469 |
@@ -49,7 +47,12 @@ Em manutenção, parar a máquina tarde demais custa uma quebra; parar cedo dema
 
 Conjunto de teste: 2.000 registros, 68 falhas. Cada modelo no seu limiar escolhido no treino (XGBoost 0,4969; regressão logística 0,7349). O XGBoost detecta 56 das 68 falhas com 18 alarmes falsos.
 
-**Por que não acurácia?** Um modelo que responde "nunca falha" acerta cerca de 97% e não pega nenhuma falha. Por isso o foco é em quantas falhas reais o modelo detecta (recall) e quantos alarmes falsos ele gera (precisão).
+<p align="center">
+  <img src="reports/figures/matriz_confusao_xgboost.png" alt="Matriz de confusão do XGBoost no conjunto de teste" width="45%">
+  <img src="reports/figures/shap_importancia.png" alt="Importância média das variáveis pelo SHAP" width="45%">
+</p>
+
+**Por que não acurácia?** Um modelo que responde "nunca falha" acerta 96,6% e não pega nenhuma falha. Por isso o foco é em quantas falhas reais o modelo detecta (recall) e quantos alarmes falsos ele gera (precisão).
 
 ## Decisões
 
@@ -86,7 +89,9 @@ python -m src.train && python -m src.evaluate && python -m src.explain
 ├── notebooks/             # exploração e avaliação
 ├── src/                   # preparação, treino e explicação
 ├── app/streamlit_app.py   # painel
-├── models/MODEL_CARD.md   # o que o modelo faz, métricas e limites
+├── models/                # modelo treinado, limiar, métricas e MODEL_CARD.md
+├── reports/figures/       # matriz de confusão, curvas e gráficos SHAP
+├── docs/                  # imagens do README
 ├── requirements.txt       # dependências do painel
 └── requirements-dev.txt   # + notebooks e treino
 ```

@@ -14,9 +14,3 @@ plotly==7.1.0
 
 # Aplicação web
 streamlit==1.64.0
-
-# Notebooks
-jupyter==1.1.1
-nbconvert==7.17.1
-nbformat==5.11.1
-ipykernel==7.3.0

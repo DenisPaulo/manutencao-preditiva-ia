@@ -1,6 +1,6 @@
 # 🔧 Manutenção Preditiva com IA
 
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-modelo-EB5E28)
 ![SHAP](https://img.shields.io/badge/SHAP-explicabilidade-8A2BE2)
 ![Streamlit](https://img.shields.io/badge/Streamlit-painel-FF4B4B?logo=streamlit&logoColor=white)
@@ -70,9 +70,13 @@ Conjunto de teste: 2.000 registros, 68 falhas. Cada modelo no seu limiar escolhi
 ```bash
 git clone https://github.com/DenisPaulo/manutencao-preditiva-ia.git
 cd manutencao-preditiva-ia
-pip install -r requirements.txt
-# baixar os dados: ver data/README.md
+pip install -r requirements.txt       # só o painel (o modelo já vem treinado)
 streamlit run app/streamlit_app.py
+
+# para rodar notebooks e retreinar:
+pip install -r requirements-dev.txt
+# baixar os dados: ver data/README.md
+python -m src.train && python -m src.evaluate && python -m src.explain
 ```
 
 ## Estrutura
@@ -83,7 +87,8 @@ streamlit run app/streamlit_app.py
 ├── src/                   # preparação, treino e explicação
 ├── app/streamlit_app.py   # painel
 ├── models/MODEL_CARD.md   # o que o modelo faz, métricas e limites
-└── requirements.txt
+├── requirements.txt       # dependências do painel
+└── requirements-dev.txt   # + notebooks e treino
 ```
 
 ## Próximo

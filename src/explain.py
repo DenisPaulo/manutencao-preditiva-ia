@@ -151,6 +151,7 @@ def select_cases(contexto: pd.DataFrame) -> dict[str, int | None]:
 
 def plot_beeswarm(expl: shap.Explanation):
     plt.figure()
+    np.random.seed(42)  # o beeswarm embaralha pontos ao desenhar: semente fixa = figura reproduzível
     shap.plots.beeswarm(expl, max_display=10, show=False, color_bar_label="Valor da variável")
     fig = plt.gcf()
     # Traduz os rótulos "Low"/"High" da barra de cores

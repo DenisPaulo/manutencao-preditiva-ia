@@ -1,0 +1,22 @@
+# Dados e ciência de dados
+pandas==3.0.6
+numpy==2.5.3
+scikit-learn==1.9.1
+joblib==1.6.0
+
+# Modelagem e explicabilidade
+xgboost==3.4.1
+shap==0.52.0
+
+# Visualização
+matplotlib==3.11.2
+plotly==7.1.0
+
+# Aplicação web
+streamlit==1.64.0
+
+# Notebooks
+jupyter==1.1.1
+nbconvert==7.17.1
+nbformat==5.11.1
+ipykernel==7.3.0

@@ -75,5 +75,108 @@
       "pr_auc_oof": 0.8376,
       "f2_oof_at_threshold": 0.8016
     }
+  },
+  "teste": {
+    "linhas": 2000,
+    "falhas": 68,
+    "modelo_ingenuo": {
+      "descricao": "Sempre prevê 'sem falha'",
+      "acuracia": 0.966,
+      "recall": 0.0,
+      "falhas_detectadas": "0 de 68"
+    },
+    "baseline": {
+      "limiar_0_5": {
+        "limiar": 0.5,
+        "recall": 0.8676,
+        "precisao": 0.1761,
+        "f1": 0.2928,
+        "f2": 0.486,
+        "acuracia": 0.8575,
+        "pr_auc": 0.4692,
+        "roc_auc": 0.9344,
+        "matriz_confusao": {
+          "vn": 1656,
+          "fp": 276,
+          "fn": 9,
+          "vp": 59
+        },
+        "falhas_detectadas": "59 de 68",
+        "alarmes_falsos": 276
+      },
+      "limiar_escolhido": {
+        "limiar": 0.7349,
+        "recall": 0.7647,
+        "precisao": 0.3077,
+        "f1": 0.4388,
+        "f2": 0.5896,
+        "acuracia": 0.9335,
+        "pr_auc": 0.4692,
+        "roc_auc": 0.9344,
+        "matriz_confusao": {
+          "vn": 1815,
+          "fp": 117,
+          "fn": 16,
+          "vp": 52
+        },
+        "falhas_detectadas": "52 de 68",
+        "alarmes_falsos": 117
+      }
+    },
+    "xgboost": {
+      "limiar_0_5": {
+        "limiar": 0.5,
+        "recall": 0.8235,
+        "precisao": 0.7568,
+        "f1": 0.7887,
+        "f2": 0.8092,
+        "acuracia": 0.985,
+        "pr_auc": 0.8837,
+        "roc_auc": 0.9794,
+        "matriz_confusao": {
+          "vn": 1914,
+          "fp": 18,
+          "fn": 12,
+          "vp": 56
+        },
+        "falhas_detectadas": "56 de 68",
+        "alarmes_falsos": 18
+      },
+      "limiar_escolhido": {
+        "limiar": 0.4969,
+        "recall": 0.8235,
+        "precisao": 0.7568,
+        "f1": 0.7887,
+        "f2": 0.8092,
+        "acuracia": 0.985,
+        "pr_auc": 0.8837,
+        "roc_auc": 0.9794,
+        "matriz_confusao": {
+          "vn": 1914,
+          "fp": 18,
+          "fn": 12,
+          "vp": 56
+        },
+        "falhas_detectadas": "56 de 68",
+        "alarmes_falsos": 18
+      }
+    },
+    "modelo_final": "XGBoost com limiar 0.4969",
+    "ic95_xgboost_limiar_escolhido": {
+      "recall": [
+        0.7273,
+        0.9077
+      ],
+      "precisao": [
+        0.6591,
+        0.8525
+      ],
+      "pr_auc": [
+        0.8108,
+        0.9411
+      ],
+      "reamostragens": 2000,
+      "metodo": "bootstrap percentil 95%, semente 42"
+    }
   }
 }

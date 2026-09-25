@@ -92,6 +92,32 @@ def prepare_features(df_raw: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     return X, y
 
 
+def build_feature_row(
+    product_type: str,
+    air_temperature_k: float,
+    process_temperature_k: float,
+    rotational_speed_rpm: float,
+    torque_nm: float,
+    tool_wear_min: float,
+) -> pd.DataFrame:
+    """Monta UMA linha de entrada do modelo a partir das leituras dos sensores.
+
+    Usado pelo app (Streamlit) e pela explicação local: aplica exatamente as
+    mesmas transformações do treino (codificação de Type e variáveis físicas).
+    """
+    if product_type not in TYPE_MAPPING:
+        raise ValueError(f"Type deve ser um de {list(TYPE_MAPPING)}, recebido: {product_type!r}")
+    row = pd.DataFrame([{
+        "type": TYPE_MAPPING[product_type],
+        "air_temperature_k": float(air_temperature_k),
+        "process_temperature_k": float(process_temperature_k),
+        "rotational_speed_rpm": float(rotational_speed_rpm),
+        "torque_nm": float(torque_nm),
+        "tool_wear_min": float(tool_wear_min),
+    }])
+    return add_features(row)
+
+
 def split_data(
     X: pd.DataFrame, y: pd.Series
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:

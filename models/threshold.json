@@ -1,0 +1,23 @@
+{
+  "model_file": "xgb_model.json",
+  "threshold": 0.4969,
+  "default_threshold": 0.5,
+  "threshold_method": "Máximo F2 nas previsões out-of-fold da validação cruzada estratificada (5 dobras) no conjunto de treino. O teste não foi usado.",
+  "baseline_threshold": 0.7349,
+  "features": [
+    "type",
+    "air_temperature_k",
+    "process_temperature_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min",
+    "power_w",
+    "temp_diff_k"
+  ],
+  "type_mapping": {
+    "L": 0,
+    "M": 1,
+    "H": 2
+  },
+  "target": "machine_failure"
+}

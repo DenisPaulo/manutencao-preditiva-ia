@@ -1,0 +1,79 @@
+{
+  "gerado_em_utc": "2026-09-25T16:23:54Z",
+  "versoes": {
+    "xgboost": "3.4.1",
+    "scikit-learn": "1.9.1"
+  },
+  "treino": {
+    "linhas": 8000,
+    "falhas": 271,
+    "scale_pos_weight": 28.5203,
+    "cv": "StratifiedKFold(n_splits=5, shuffle=True, random_state=42)"
+  },
+  "busca_hiperparametros": {
+    "metodo": "RandomizedSearchCV, 20 combinações, scoring=average_precision",
+    "espaco": {
+      "n_estimators": [
+        100,
+        200,
+        300,
+        400
+      ],
+      "max_depth": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "learning_rate": [
+        0.03,
+        0.05,
+        0.1,
+        0.2
+      ],
+      "subsample": [
+        0.7,
+        0.85,
+        1.0
+      ],
+      "colsample_bytree": [
+        0.7,
+        0.85,
+        1.0
+      ],
+      "min_child_weight": [
+        1,
+        3,
+        5
+      ]
+    },
+    "melhores_parametros": {
+      "subsample": 0.85,
+      "n_estimators": 200,
+      "min_child_weight": 3,
+      "max_depth": 6,
+      "learning_rate": 0.05,
+      "colsample_bytree": 0.85
+    },
+    "pr_auc_cv_media": 0.8369,
+    "pr_auc_cv_desvio": 0.0459
+  },
+  "cv_oof": {
+    "baseline": {
+      "threshold": 0.7349,
+      "f2_oof": 0.531,
+      "precision_oof": 0.2812,
+      "recall_oof": 0.6827,
+      "pr_auc_oof": 0.4776,
+      "f2_oof_at_threshold": 0.531
+    },
+    "xgboost": {
+      "threshold": 0.4969,
+      "f2_oof": 0.8016,
+      "precision_oof": 0.7264,
+      "recall_oof": 0.8229,
+      "pr_auc_oof": 0.8376,
+      "f2_oof_at_threshold": 0.8016
+    }
+  }
+}

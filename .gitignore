@@ -4,10 +4,11 @@ data/processed/
 *.csv
 *.zip
 
-# Modelos treinados
+# Modelos treinados (o modelo XGBoost em .json e os arquivos de métricas/limiar SÃO versionados,
+# para o app no Streamlit Cloud carregar sem retreinar; o baseline em .joblib fica fora)
 models/*.joblib
 models/*.pkl
-models/*.json
+models/*.tmp
 
 # Ambiente Python
 .venv/

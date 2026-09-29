@@ -9,9 +9,9 @@
 > **Com essas leituras dos sensores, a máquina vai falhar? E por quê?**
 > Modelo de classificação de falhas com explicação de cada previsão, construído por quem vem do chão de fábrica (robôs ABB, CLP e manutenção preventiva).
 
-🔗 **Demo:** _link do Streamlit Cloud (em breve)_
+🔗 **Demo:** [abrir o painel no Streamlit Cloud](https://manutencao-preditiva-ia-3xvamtyr7vvjvcxdbsdnze.streamlit.app/)
 
-![Painel Streamlit: simulador com o caso de ferramenta gasta](docs/app-preview.png)
+[![Painel Streamlit: simulador com o caso de ferramenta gasta](docs/app-preview.png)](https://manutencao-preditiva-ia-3xvamtyr7vvjvcxdbsdnze.streamlit.app/)
 
 ---
 

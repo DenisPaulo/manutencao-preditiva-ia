@@ -5,6 +5,7 @@
 ![SHAP](https://img.shields.io/badge/SHAP-explicabilidade-8A2BE2)
 ![Streamlit](https://img.shields.io/badge/Streamlit-painel-FF4B4B?logo=streamlit&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+[![CI](https://github.com/DenisPaulo/manutencao-preditiva-ia/actions/workflows/ci.yml/badge.svg)](https://github.com/DenisPaulo/manutencao-preditiva-ia/actions/workflows/ci.yml)
 
 > **Com essas leituras dos sensores, a máquina vai falhar? E por quê?**
 > Modelo de classificação de falhas com explicação de cada previsão, construído por quem vem do chão de fábrica (robôs ABB, CLP e manutenção preventiva).

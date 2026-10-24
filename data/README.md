@@ -1,14 +1,13 @@
-# Dados — AI4I 2020 Predictive Maintenance Dataset
+# Dados — AI4I 2020 (V1) e NASA C-MAPSS FD001 (V2)
 
-Este projeto usa o **AI4I 2020 Predictive Maintenance Dataset**, publicado no
-[UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset)
-(id 601). É um conjunto **sintético**, criado por Stephan Matzka para reproduzir o
-comportamento de dados reais de manutenção preditiva de uma máquina de usinagem:
-10.000 registros de operação, cada um com leituras de sensores e a indicação de
-falha da máquina.
+Este projeto utiliza dois conjuntos públicos de referência em manutenção preditiva:
 
-> O CSV **não é versionado** neste repositório (a pasta `data/raw/` está no
-> `.gitignore`). Ele é baixado direto da fonte oficial.
+1. **V1 — AI4I 2020 Predictive Maintenance Dataset** ([UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset), id 601): 10.000 registros de operação de uma máquina de usinagem para **classificação de falha** (vai falhar: sim/não).
+2. **V2 — NASA C-MAPSS Turbofan Engine Degradation Simulation Dataset (FD001)** (NASA Prognostics Data Repository, PHM08): séries temporais ciclo a ciclo de 100 motores de treino e 100 motores de teste para **regressão de Vida Útil Remanescente (RUL)**.
+
+> Os arquivos brutos **não são versionados** neste repositório (a pasta `data/raw/` está no `.gitignore`). Os scripts baixam os arquivos automaticamente quando executados.
+
+---
 
 ## Como baixar
 
@@ -16,29 +15,59 @@ A partir da raiz do projeto, com o ambiente Python ativo:
 
 ```bash
 pip install -r requirements.txt
-python -m src.data        # baixa e extrai data/raw/ai4i2020.csv (só na primeira vez)
+
+# V1 — AI4I 2020 (classificação)
+python -m src.data        # baixa e extrai data/raw/ai4i2020.csv
 python -m src.features    # gera os conjuntos de treino/teste em data/processed/
+
+# V2 — NASA C-MAPSS FD001 (vida útil remanescente / RUL)
+python -m src.cmapss      # baixa data/raw/cmapss/*FD001.txt, treina o modelo e atualiza models/
 ```
 
-O script baixa o arquivo oficial:
-
-```
-https://archive.ics.uci.edu/static/public/601/ai4i+2020+predictive+maintenance+dataset.zip
-```
-
-e extrai o `ai4i2020.csv`. Se o arquivo já existir, o download é ignorado.
-
-Download manual (alternativa): baixe o `.zip` pelo link acima e coloque o
-`ai4i2020.csv` em `data/raw/`.
+Se o ambiente não tiver acesso à internet no momento da execução dos testes, `src/cmapss.py` possui um gerador sintético determinístico (`make_synthetic_fd001`) usado automaticamente como fallback offline.
 
 ## Estrutura das pastas
 
-| Pasta             | Conteúdo                                                      | Versionada? |
-|-------------------|---------------------------------------------------------------|-------------|
-| `data/raw/`       | CSV original, exatamente como veio do UCI                     | Não         |
-| `data/processed/` | `X_train.csv`, `X_test.csv`, `y_train.csv`, `y_test.csv`      | Não         |
+| Pasta | Conteúdo | Versionada? |
+|---|---|---|
+| `data/raw/` | `ai4i2020.csv` (UCI) | Não |
+| `data/raw/cmapss/` | `train_FD001.txt`, `test_FD001.txt`, `RUL_FD001.txt` (NASA C-MAPSS) | Não |
+| `data/processed/` | `X_train.csv`, `X_test.csv`, `y_train.csv`, `y_test.csv` (V1) | Não |
 
-## Colunas explicadas (visão de manutenção industrial)
+---
+
+## V2 — NASA C-MAPSS FD001 explicado (visão de manutenção industrial)
+
+No subconjunto **FD001**, cada linha representa **1 ciclo completo de operação** de uma turbina a gás (condição ao nível do mar, modo de falha por degradação do compressor de alta pressão — HPC):
+
+- **`train_FD001.txt` (20.631 linhas, 100 motores):** cada motor opera desde a condição saudável até a falha funcional (o último ciclo do motor tem `RUL = 0`).
+- **`test_FD001.txt` (13.096 linhas, 100 motores):** as leituras são cortadas antes da falha; o objetivo é prever quantos ciclos restam após o último ciclo observado de cada motor.
+- **`RUL_FD001.txt` (100 linhas):** a vida útil remanescente real (em ciclos) no instante do corte de cada um dos 100 motores de teste.
+
+### Sensores mantidos vs. sensores removidos no FD001
+
+Das 26 colunas originais (`unit_id`, `cycle`, 3 ajustes operacionais e 21 sensores `s1..s21`), **8 colunas são constantes/planas** no FD001 (`op_setting_3`, `s1`, `s5`, `s6`, `s10`, `s16`, `s18`, `s19`) e são descartadas por não trazerem informação sobre o desgaste. Os **14 sensores informativos** mantidos são:
+
+| Sensor | Grandeza física | Tendência com a degradação |
+|---|---|---|
+| `s2` | Temperatura na saída do compressor de baixa pressão (LPC) [°R] | Sobe |
+| `s3` | Temperatura na saída do compressor de alta pressão (HPC) [°R] | Sobe |
+| `s4` | Temperatura na saída da turbina de baixa pressão (LPT) [°R] | Sobe |
+| `s7` | Pressão total na saída do HPC [psia] | Cai |
+| `s8` | Rotação física do fan [rpm] | Sobe |
+| `s9` | Rotação física do núcleo (core) [rpm] | Sobe |
+| `s11` | Pressão estática na saída do HPC [psia] | Sobe (principal indicador no SHAP) |
+| `s12` | Razão entre fluxo de combustível e pressão estática Ps30 [pps/psi] | Cai |
+| `s13` | Rotação corrigida do fan [rpm] | Sobe |
+| `s14` | Rotação corrigida do núcleo [rpm] | Sobe |
+| `s15` | Razão de bypass (BPR) | Sobe |
+| `s17` | Entalpia de sangria (*bleed enthalpy*) | Sobe |
+| `s20` | Fluxo de ar de resfriamento da turbina de alta pressão (HPT) [lbm/s] | Cai |
+| `s21` | Fluxo de ar de resfriamento da turbina de baixa pressão (LPT) [lbm/s] | Cai |
+
+---
+
+## V1 — Colunas do AI4I 2020 explicadas (visão de manutenção industrial)
 
 | Coluna | Unidade | O que significa na prática |
 |---|---|---|
@@ -50,7 +79,7 @@ Download manual (alternativa): baixe o `.zip` pelo link acima e coloque o
 | `Rotational speed [rpm]` | rpm | Velocidade do eixo/fuso da máquina. |
 | `Torque [Nm]` | N·m | Esforço de giro no eixo — quanto "força" a máquina está fazendo no corte. |
 | `Tool wear [min]` | minutos | Tempo de uso acumulado da ferramenta de corte desde a última troca. É o "horímetro" da ferramenta. |
-| `Machine failure` | 0/1 | **Alvo do modelo**: 1 se a máquina falhou naquele registro, por qualquer um dos modos abaixo. |
+| `Machine failure` | 0/1 | **Alvo do modelo V1**: 1 se a máquina falhou naquele registro, por qualquer um dos modos abaixo. |
 | `TWF` | 0/1 | *Tool Wear Failure* — falha por desgaste da ferramenta (fim de vida útil). |
 | `HDF` | 0/1 | *Heat Dissipation Failure* — falha por dissipação de calor insuficiente (pouca diferença entre ar e processo com rotação baixa). |
 | `PWF` | 0/1 | *Power Failure* — potência (torque × rotação) fora da faixa de trabalho: muito baixa ou muito alta. |
@@ -62,23 +91,7 @@ falha aconteceu — só são conhecidas depois da quebra. Por isso elas **não e
 como variáveis de entrada** do modelo (seria vazamento de alvo / *data leakage*).
 Veja `src/features.py` e `notebooks/02_preparacao.ipynb`.
 
-A descrição oficial no UCI traz a regra de geração de cada modo de falha. Os
-números citados nesse texto (por exemplo, 120 casos de TWF e 5 de RNF) **não
-batem** com a contagem feita no próprio CSV (46 de TWF e 19 de RNF, por
-exemplo). Neste projeto valem sempre os números calculados a partir do arquivo —
-veja `notebooks/01_exploracao.ipynb`.
-
 ## Licença e citação
 
-- **Fonte:** UCI Machine Learning Repository — AI4I 2020 Predictive Maintenance Dataset (id 601)
-- **Autor:** Stephan Matzka
-- **Licença:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
-- **DOI:** [10.24432/C5HS5C](https://doi.org/10.24432/C5HS5C)
-
-Citação do dataset:
-
-> AI4I 2020 Predictive Maintenance Dataset [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5HS5C
-
-Artigo introdutório:
-
-> S. Matzka, "Explainable Artificial Intelligence for Predictive Maintenance Applications," *2020 Third International Conference on Artificial Intelligence for Industries (AI4I)*, 2020, pp. 69–74. doi: 10.1109/AI4I49448.2020.00023
+- **V1 (AI4I 2020):** Stephan Matzka, UCI Machine Learning Repository (id 601), licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), DOI [10.24432/C5HS5C](https://doi.org/10.24432/C5HS5C).
+- **V2 (NASA C-MAPSS):** A. Saxena, K. Goebel, D. Simon, N. Eklund, "Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation", *Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08)*, Denver, CO, 2008.

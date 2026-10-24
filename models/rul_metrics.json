@@ -1,0 +1,191 @@
+{
+  "gerado_em_utc": "2026-10-24T15:11:41Z",
+  "dataset": "NASA C-MAPSS FD001 (real)",
+  "versoes": {
+    "xgboost": "3.4.1",
+    "scikit-learn": "1.9.1"
+  },
+  "configuracao": {
+    "rul_cap": 125,
+    "window": 5,
+    "sensores_removidos_constantes": [
+      "op_setting_3",
+      "s1",
+      "s5",
+      "s6",
+      "s10",
+      "s16",
+      "s18",
+      "s19"
+    ],
+    "sensores_informativos": [
+      "s2",
+      "s3",
+      "s4",
+      "s7",
+      "s8",
+      "s9",
+      "s11",
+      "s12",
+      "s13",
+      "s14",
+      "s15",
+      "s17",
+      "s20",
+      "s21"
+    ],
+    "zonas_manutencao": {
+      "critico": "<= 20 ciclos (intervenção imediata)",
+      "atencao": "21 a 50 ciclos (programar preventiva)",
+      "saudavel": "> 50 ciclos (operação normal)"
+    }
+  },
+  "treino": {
+    "linhas": 20631,
+    "motores": 100,
+    "num_features": 57
+  },
+  "teste": {
+    "linhas_totais": 13096,
+    "motores_avaliados": 100,
+    "baseline_ridge": {
+      "rmse_ciclos": 16.6,
+      "mae_ciclos": 13.23,
+      "r2": 0.8285,
+      "nasa_score": 445.1,
+      "nasa_score_por_motor": 4.45,
+      "previsoes_atrasadas": 54,
+      "previsoes_adiantadas": 46
+    },
+    "xgboost_regressor": {
+      "rmse_ciclos": 11.13,
+      "mae_ciclos": 8.31,
+      "r2": 0.9228,
+      "nasa_score": 176.8,
+      "nasa_score_por_motor": 1.77,
+      "previsoes_atrasadas": 48,
+      "previsoes_adiantadas": 52
+    }
+  },
+  "hiperparametros_xgboost": {
+    "n_estimators": 300,
+    "max_depth": 4,
+    "learning_rate": 0.04,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "min_child_weight": 5,
+    "reg_alpha": 1.0,
+    "reg_lambda": 2.0
+  },
+  "top_features_shap": [
+    {
+      "feature": "s11_delta",
+      "rotulo": "s11 Pressão estática HPC [psia] (Δ vs início)",
+      "shap_medio_ciclos": 10.7
+    },
+    {
+      "feature": "s4_delta",
+      "rotulo": "s4 Temp. saída LPT [°R] (Δ vs início)",
+      "shap_medio_ciclos": 5.99
+    },
+    {
+      "feature": "cycle",
+      "rotulo": "Ciclo atual do motor",
+      "shap_medio_ciclos": 5.27
+    },
+    {
+      "feature": "s13_delta",
+      "rotulo": "s13 Rotação corrigida fan [rpm] (Δ vs início)",
+      "shap_medio_ciclos": 3.7
+    },
+    {
+      "feature": "s14_delta",
+      "rotulo": "s14 Rotação corrigida núcleo [rpm] (Δ vs início)",
+      "shap_medio_ciclos": 3.43
+    },
+    {
+      "feature": "s15_delta",
+      "rotulo": "s15 Razão de bypass (BPR) (Δ vs início)",
+      "shap_medio_ciclos": 3.34
+    },
+    {
+      "feature": "s9_delta",
+      "rotulo": "s9 Rotação física núcleo [rpm] (Δ vs início)",
+      "shap_medio_ciclos": 2.67
+    },
+    {
+      "feature": "s8_delta",
+      "rotulo": "s8 Rotação física fan [rpm] (Δ vs início)",
+      "shap_medio_ciclos": 2.24
+    },
+    {
+      "feature": "s21_delta",
+      "rotulo": "s21 Fluxo resfriamento LPT (Δ vs início)",
+      "shap_medio_ciclos": 2.14
+    },
+    {
+      "feature": "s20_delta",
+      "rotulo": "s20 Fluxo resfriamento HPT (Δ vs início)",
+      "shap_medio_ciclos": 2.13
+    }
+  ],
+  "features": [
+    "cycle",
+    "s2",
+    "s2_mean5",
+    "s2_std5",
+    "s2_delta",
+    "s3",
+    "s3_mean5",
+    "s3_std5",
+    "s3_delta",
+    "s4",
+    "s4_mean5",
+    "s4_std5",
+    "s4_delta",
+    "s7",
+    "s7_mean5",
+    "s7_std5",
+    "s7_delta",
+    "s8",
+    "s8_mean5",
+    "s8_std5",
+    "s8_delta",
+    "s9",
+    "s9_mean5",
+    "s9_std5",
+    "s9_delta",
+    "s11",
+    "s11_mean5",
+    "s11_std5",
+    "s11_delta",
+    "s12",
+    "s12_mean5",
+    "s12_std5",
+    "s12_delta",
+    "s13",
+    "s13_mean5",
+    "s13_std5",
+    "s13_delta",
+    "s14",
+    "s14_mean5",
+    "s14_std5",
+    "s14_delta",
+    "s15",
+    "s15_mean5",
+    "s15_std5",
+    "s15_delta",
+    "s17",
+    "s17_mean5",
+    "s17_std5",
+    "s17_delta",
+    "s20",
+    "s20_mean5",
+    "s20_std5",
+    "s20_delta",
+    "s21",
+    "s21_mean5",
+    "s21_std5",
+    "s21_delta"
+  ]
+}

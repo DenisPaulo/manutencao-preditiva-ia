@@ -1,12 +1,12 @@
-"""Painel de manutenção preditiva (Streamlit).
+"""Painel de manutenção preditiva (Streamlit) — V1 (AI4I 2020) e V2 (NASA C-MAPSS RUL).
 
 Rodar localmente, a partir da raiz do projeto:
 
     streamlit run app/streamlit_app.py
 
 No Streamlit Community Cloud, o arquivo principal é ``app/streamlit_app.py``.
-O app só lê arquivos versionados (``models/xgb_model.json``, ``models/threshold.json``,
-``models/metrics.json`` e ``reports/figures/``): não baixa dados nem retreina nada.
+O app só lê arquivos versionados (``models/*.json`` e ``reports/figures/``):
+não baixa dados brutos nem retreina nada em produção.
 """
 
 from __future__ import annotations
@@ -28,6 +28,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.cmapss import (  # noqa: E402
+    ATTENTION_ZONE,
+    CRITICAL_ZONE,
+    RUL_CAP,
+    explain_rul_row,
+    feature_label,
+    get_rul_explainer,
+)
 from src.explain import FEATURE_LABELS, explain_row, get_explainer  # noqa: E402
 from src.features import build_feature_row  # noqa: E402
 
@@ -45,15 +53,17 @@ def load_json(nome: str) -> dict:
 
 
 @st.cache_resource
-def warm_up_model():
-    """Carrega o XGBoost e o explicador SHAP uma única vez por servidor."""
-    return get_explainer()
+def warm_up_models():
+    """Carrega os modelos XGBoost (V1 e V2) e os explicadores SHAP uma única vez."""
+    return get_explainer(), get_rul_explainer()
 
 
 CONFIG = load_json("threshold.json")
 METRICS = load_json("metrics.json")
+RUL_METRICS = load_json("rul_metrics.json")
+RUL_SAMPLES = load_json("rul_sample_engines.json")
 THRESHOLD = float(CONFIG["threshold"])
-warm_up_model()
+warm_up_models()
 
 # Faixas dos controles = mínimo e máximo observados no dataset AI4I 2020;
 # valores padrão = medianas do dataset.
@@ -112,17 +122,23 @@ def fmt(x: float, casas: int = 3) -> str:
 
 st.title("🔧 Manutenção Preditiva com IA")
 st.markdown(
-    "**Com essas leituras dos sensores, a máquina vai falhar? E por quê?** "
-    "Modelo XGBoost treinado no dataset público AI4I 2020, com explicação SHAP de cada previsão."
+    "**V1 — Vai falhar? E por quê?** (classificação no dataset AI4I 2020) · "
+    "**V2 — Quantos ciclos restam até a falha?** (regressão de vida útil remanescente / RUL no NASA C-MAPSS FD001), "
+    "ambos com **XGBoost** e explicação **SHAP** de cada previsão."
 )
 
-aba_sim, aba_desemp, aba_dados = st.tabs(["🎛️ Simulador", "📊 Desempenho do modelo", "📚 Sobre os dados"])
+aba_sim, aba_rul, aba_desemp, aba_dados = st.tabs([
+    "🎛️ V1 — Simulador de falha (AI4I)",
+    "⏱️ V2 — Vida útil / RUL (NASA C-MAPSS)",
+    "📊 Desempenho dos modelos",
+    "📚 Sobre os dados",
+])
 
-# ----------------------------------------------------------------------------- aba 1
+# ----------------------------------------------------------------------------- aba 1 (V1)
 
 with aba_sim:
     init_state()
-    st.markdown("Ajuste as leituras dos sensores ou carregue um **cenário real** do dataset:")
+    st.markdown("Ajuste as leituras dos sensores ou carregue um **cenário real** do dataset AI4I 2020:")
     cols = st.columns(len(PRESETS))
     for col, nome in zip(cols, PRESETS):
         col.button(nome, on_click=apply_preset, args=(nome,), width="stretch")
@@ -180,11 +196,176 @@ with aba_sim:
         st.caption("Barras vermelhas empurram para falha, azuis para operação normal. Valores em log-odds "
                    "(escala interna do modelo); E[f(X)] é o ponto de partida médio e f(x) o resultado desta entrada.")
 
-# ----------------------------------------------------------------------------- aba 2
+# ----------------------------------------------------------------------------- aba 2 (V2 — RUL C-MAPSS)
+
+with aba_rul:
+    st.subheader("Previsão de Vida Útil Remanescente (RUL) — NASA C-MAPSS FD001")
+    st.markdown(
+        "Selecione um motor real do conjunto de teste **FD001** para inspecionar a trajetória de degradação "
+        "ciclo a ciclo, a **vida útil remanescente prevista (em ciclos)** e quais sensores puxaram a previsão no último ciclo."
+    )
+
+    motores = RUL_SAMPLES["motores_destaque"]
+    opcoes_id = list(motores.keys())
+    rotulos_map = {k: motores[k]["rotulo"] for k in opcoes_id}
+    motor_key = st.selectbox(
+        "Motor do conjunto de teste FD001",
+        options=opcoes_id,
+        format_func=lambda k: rotulos_map[k],
+    )
+    eng = motores[motor_key]
+    rul_res = explain_rul_row(eng["ultimo_ciclo_features"])
+    rul_pred = rul_res["rul_previsto"]
+    rul_real = eng["rul_real_final"]
+    zona = rul_res["zona"]
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Ciclos observados", f"{eng['ciclos_observados']} ciclos")
+    k2.metric("RUL previsto (XGBoost)", f"{fmt(rul_pred, 1)} ciclos")
+    k3.metric("RUL real (FD001)", f"{fmt(rul_real, 1)} ciclos")
+    k4.metric("Erro (previsto − real)", f"{fmt(rul_pred - rul_real, 1)} ciclos")
+
+    if zona == "Crítico":
+        st.error(
+            f"🚨 **ZONA CRÍTICA (≤ {CRITICAL_ZONE} ciclos)**: restam cerca de **{fmt(rul_pred, 1)} ciclos**. "
+            "Recomenda-se intervenção imediata antes da falha funcional."
+        )
+    elif zona == "Atenção":
+        st.warning(
+            f"⚠️ **ZONA DE ATENÇÃO ({CRITICAL_ZONE + 1} a {ATTENTION_ZONE} ciclos)**: restam cerca de "
+            f"**{fmt(rul_pred, 1)} ciclos**. Programar ordem de serviço preventiva na próxima janela."
+        )
+    else:
+        st.success(
+            f"✅ **ZONA SAUDÁVEL (> {ATTENTION_ZONE} ciclos)**: restam cerca de **{fmt(rul_pred, 1)} ciclos**. "
+            "Equipamento em operação normal; manter monitoramento por condição."
+        )
+
+    col_deg, col_shap = st.columns([1.05, 1.25], gap="large")
+
+    with col_deg:
+        st.markdown("**Trajetória de degradação ao longo dos ciclos**")
+        tr = eng["trajetoria"]
+        fig_d, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.2, 5.4), sharex=True)
+        ax1.axhspan(0, CRITICAL_ZONE, color="#FDECEA", alpha=0.8, label="Crítico (≤ 20)")
+        ax1.axhspan(CRITICAL_ZONE, ATTENTION_ZONE, color="#FFF8E1", alpha=0.8, label="Atenção (21–50)")
+        ax1.plot(tr["cycle"], tr["rul_real"], "k--", lw=1.6, label="RUL real (teto 125)")
+        ax1.plot(tr["cycle"], tr["rul_pred"], color="#C44E52", lw=2.1, label="RUL previsto")
+        ax1.set_ylabel("RUL [ciclos]")
+        ax1.set_ylim(0, RUL_CAP + 8)
+        ax1.grid(alpha=0.3)
+        ax1.legend(loc="lower left", fontsize=8)
+
+        ax2.plot(tr["cycle"], tr["s11"], color="#1F4E78", lw=1.6, label="s11 Pressão estática HPC [psia]")
+        ax2_t = ax2.twinx()
+        ax2_t.plot(tr["cycle"], tr["s4"], color="#DD8452", lw=1.5, ls="--", label="s4 Temp. saída LPT [°R]")
+        ax2.set_xlabel("Ciclo de operação")
+        ax2.set_ylabel("s11 [psia]", color="#1F4E78")
+        ax2_t.set_ylabel("s4 [°R]", color="#DD8452")
+        ax2.grid(alpha=0.3)
+        fig_d.tight_layout()
+        st.pyplot(fig_d, clear_figure=True)
+        plt.close(fig_d)
+        st.caption(
+            "Acima: RUL previsto caindo conforme a degradação avança. Abaixo: subida da pressão estática no HPC (s11) "
+            "e da temperatura de saída da LPT (s4) ao longo dos ciclos."
+        )
+
+    with col_shap:
+        st.markdown("**Quais sensores reduziram ou aumentaram a RUL neste ciclo?** (SHAP local em ciclos)")
+        plt.figure()
+        shap.plots.waterfall(rul_res["explanation"], max_display=9, show=False)
+        fig_s = plt.gcf()
+        fig_s.set_size_inches(8.2, 4.8)
+        plt.tight_layout()
+        st.pyplot(fig_s, clear_figure=True)
+        plt.close("all")
+
+        top_rul = rul_res["shap"].head(3)
+        frases_rul = []
+        for feat, val in top_rul.items():
+            acao = "reduz" if val < 0 else "aumenta"
+            frases_rul.append(f"**{feature_label(feat)}** ({acao} a RUL em {fmt(abs(float(val)), 1)} ciclos)")
+        st.markdown("Principais contribuições no último ciclo: " + "; ".join(frases_rul) + ".")
+        st.caption(
+            "Na regressão de RUL, os valores SHAP já estão na própria unidade do alvo (**ciclos de vida útil**): "
+            "barras azuis (negativas) puxam a vida útil para baixo; barras vermelhas (positivas) indicam condição saudável."
+        )
+
+    with st.expander("Ver tabela dos 100 motores de teste do FD001"):
+        filtro_zona = st.radio(
+            "Filtrar por zona de manutenção prevista",
+            ["Todos", "Crítico", "Atenção", "Saudável"],
+            horizontal=True,
+        )
+        df_100 = pd.DataFrame(RUL_SAMPLES["resumo_teste"])
+        if filtro_zona != "Todos":
+            df_100 = df_100[df_100["zona"] == filtro_zona]
+        st.dataframe(
+            df_100.rename(columns={
+                "unit_id": "Motor",
+                "ciclos_observados": "Ciclos observados",
+                "rul_real": "RUL real [ciclos]",
+                "rul_previsto": "RUL previsto [ciclos]",
+                "erro_ciclos": "Erro [ciclos]",
+                "zona": "Zona",
+            }),
+            hide_index=True,
+            width="stretch",
+        )
+
+# ----------------------------------------------------------------------------- aba 3 (Desempenho V1 e V2)
 
 with aba_desemp:
+    st.subheader("V2 — Regressão de Vida Útil Remanescente (NASA C-MAPSS FD001)")
+    t_rul = RUL_METRICS["teste"]
+    b_rul = t_rul["baseline_ridge"]
+    x_rul = t_rul["xgboost_regressor"]
+    st.markdown(
+        f"Avaliação oficial no último ciclo observado dos **{t_rul['motores_avaliados']} motores de teste** "
+        f"({fmt_int(t_rul['linhas_totais'])} ciclos no arquivo de teste), com teto linear por partes em **{RUL_CAP} ciclos**."
+    )
+    df_rul_m = pd.DataFrame([
+        {
+            "Modelo": "Ridge (baseline linear)",
+            "RMSE [ciclos]": fmt(b_rul["rmse_ciclos"], 2),
+            "MAE [ciclos]": fmt(b_rul["mae_ciclos"], 2),
+            "R²": fmt(b_rul["r2"], 4),
+            "NASA Score (menor = melhor)": fmt(b_rul["nasa_score"], 1),
+        },
+        {
+            "Modelo": "XGBRegressor (modelo principal)",
+            "RMSE [ciclos]": fmt(x_rul["rmse_ciclos"], 2),
+            "MAE [ciclos]": fmt(x_rul["mae_ciclos"], 2),
+            "R²": fmt(x_rul["r2"], 4),
+            "NASA Score (menor = melhor)": fmt(x_rul["nasa_score"], 1),
+        },
+    ])
+    st.dataframe(df_rul_m, hide_index=True, width="stretch")
+
+    rk1, rk2, rk3, rk4 = st.columns(4)
+    rk1.metric("RMSE (XGBoost)", f"{fmt(x_rul['rmse_ciclos'], 2)} ciclos")
+    rk2.metric("MAE (XGBoost)", f"{fmt(x_rul['mae_ciclos'], 2)} ciclos")
+    rk3.metric("R² no teste", fmt(x_rul["r2"], 4))
+    rk4.metric("NASA Score total", fmt(x_rul["nasa_score"], 1))
+
+    st.image(
+        str(FIGURES_DIR / "rul_previsto_vs_real.png"),
+        caption="NASA C-MAPSS FD001: RUL previsto vs. real e acompanhamento dos 100 motores de teste",
+    )
+    rc1, rc2 = st.columns(2)
+    rc1.image(
+        str(FIGURES_DIR / "rul_degradacao_motor.png"),
+        caption="Curva de degradação de um motor e função de pontuação assimétrica da NASA",
+    )
+    rc2.image(
+        str(FIGURES_DIR / "rul_shap_importancia.png"),
+        caption="Importância global SHAP (em ciclos) no conjunto de teste FD001",
+    )
+
+    st.divider()
     teste = METRICS["teste"]
-    st.subheader("Resultado no conjunto de teste")
+    st.subheader("V1 — Classificação de falhas (AI4I 2020)")
     st.markdown(
         f"Avaliação em **{fmt_int(teste['linhas'])} registros nunca vistos no treino**, com **{teste['falhas']} falhas**. "
         "Cada modelo usa o seu limiar escolhido no treino."
@@ -233,7 +414,7 @@ que uma inspeção). O teste não foi usado nessa escolha. Numa fábrica real, o
     )
     st.image(str(FIGURES_DIR / "limiar_precisao_recall.png"), caption="Recall e precisão do XGBoost no teste para cada limiar")
 
-    with st.expander("Como o modelo foi treinado"):
+    with st.expander("Como o modelo V1 foi treinado"):
         busca = METRICS["busca_hiperparametros"]
         st.markdown(
             f"- Treino: {fmt_int(METRICS['treino']['linhas'])} registros ({METRICS['treino']['falhas']} falhas); divisão 80/20 estratificada, semente 42.\n"
@@ -244,10 +425,23 @@ que uma inspeção). O teste não foi usado nessa escolha. Numa fábrica real, o
         )
         st.image(str(FIGURES_DIR / "shap_importancia.png"), caption="Importância global das variáveis (média |SHAP| no teste)")
 
-# ----------------------------------------------------------------------------- aba 3
+# ----------------------------------------------------------------------------- aba 4 (Sobre os dados)
 
 with aba_dados:
-    st.subheader("AI4I 2020 Predictive Maintenance Dataset")
+    st.subheader("V2 — NASA C-MAPSS Turbofan Engine Degradation (FD001)")
+    st.markdown(
+        """
+Simulação de degradação até a falha (*run-to-failure*) de motores turbofan publicada pela **NASA** (Prognostics Data Repository).
+
+- **Subconjunto FD001:** 100 motores de treino (20.631 ciclos, operando até a falha do compressor de alta pressão — HPC) e 100 motores de teste (13.096 ciclos, interrompidos antes da falha, com o gabarito oficial em `RUL_FD001.txt`).
+- **Seleção de sensores:** removidos os ajustes e sensores constantes no FD001 (`op_setting_3`, `s1`, `s5`, `s6`, `s10`, `s16`, `s18`, `s19`) e mantidos os **14 sensores informativos** (`s2, s3, s4, s7, s8, s9, s11, s12, s13, s14, s15, s17, s20, s21`).
+- **Engenharia de variáveis temporais:** para cada sensor são calculados a média móvel de 5 ciclos, o desvio-padrão móvel de 5 ciclos e o deslocamento ($\Delta$) em relação aos 5 primeiros ciclos saudáveis do próprio motor.
+- **Alvo (piecewise linear RUL):** limitado em **125 ciclos**, convenção clássica da literatura C-MAPSS porque o desgaste físico não se manifesta nos sensores antes dos últimos ~125 ciclos.
+- **Função assimétrica da NASA:** penaliza previsões otimistas/atrasadas ($\hat{y} > y$, divisor 10) mais que previsões conservadoras/adiantadas ($\hat{y} < y$, divisor 13), refletindo o maior custo de uma quebra inesperada na manutenção industrial.
+"""
+    )
+
+    st.subheader("V1 — AI4I 2020 Predictive Maintenance Dataset")
     st.markdown(
         """
 Conjunto **sintético** publicado no UCI Machine Learning Repository para reproduzir dados de manutenção preditiva
@@ -264,22 +458,16 @@ de uma máquina de usinagem.
     st.subheader("Limitações")
     st.markdown(
         """
-- **Dados sintéticos:** o modelo demonstra o método; não substitui validação com dados de uma máquina real.
-- **Falha por desgaste da ferramenta é, em boa parte, sorteio:** pela descrição do dataset, a ferramenta falha ou é
-  trocada num momento aleatório entre ~200 e 240 min de uso. Os sensores mostram a zona de risco, mas não o instante
-  da quebra — 9 das 12 falhas não detectadas no teste são desse tipo.
-- **Falha de potência é uma regra fixa** (fora de 3.500–9.000 W sempre falha), fácil para o modelo aprender.
-- **Sem dimensão de tempo:** cada linha é um instante isolado; não há tendência dos sensores.
-- **Poucas falhas no teste (68):** as métricas têm incerteza (veja o intervalo de confiança na aba de desempenho).
+- **Dados de simulação:** tanto o AI4I 2020 quanto o NASA C-MAPSS vêm de simuladores validados na literatura; não substituem a calibração com o histórico real da própria planta.
+- **No AI4I 2020 (V1):** cada linha é um instante isolado e a falha por desgaste da ferramenta (TWF) ocorre num momento sorteado entre ~200 e 240 min de uso.
+- **No C-MAPSS FD001 (V2):** há uma única condição operacional (nível do mar) e um único modo de degradação (compressor de alta pressão — HPC). Para múltiplas condições operacionais e múltiplos modos de falha, usam-se os subconjuntos FD002 a FD004.
 """
     )
-    st.subheader("Fonte e licença")
+    st.subheader("Fontes e licença")
     st.markdown(
         """
-- AI4I 2020 Predictive Maintenance Dataset [Dataset]. (2020). UCI Machine Learning Repository.
-  [https://doi.org/10.24432/C5HS5C](https://doi.org/10.24432/C5HS5C)
-- Licença dos dados: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- Artigo: S. Matzka, *Explainable Artificial Intelligence for Predictive Maintenance Applications*, AI4I 2020.
-- Código do projeto: licença MIT — [repositório no GitHub](https://github.com/DenisPaulo/manutencao-preditiva-ia).
+- **NASA C-MAPSS:** A. Saxena, K. Goebel, D. Simon, N. Eklund, *Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation*, PHM08, 2008.
+- **AI4I 2020:** UCI Machine Learning Repository — [https://doi.org/10.24432/C5HS5C](https://doi.org/10.24432/C5HS5C) (CC BY 4.0).
+- **Código do projeto:** licença MIT — [repositório no GitHub](https://github.com/DenisPaulo/manutencao-preditiva-ia).
 """
     )

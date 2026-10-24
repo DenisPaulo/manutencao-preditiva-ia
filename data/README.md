@@ -38,7 +38,7 @@ Download manual (alternativa): baixe o `.zip` pelo link acima e coloque o
 | `data/raw/`       | CSV original, exatamente como veio do UCI                     | Não         |
 | `data/processed/` | `X_train.csv`, `X_test.csv`, `y_train.csv`, `y_test.csv`      | Não         |
 
-## Colunas explicadas (visão de chão de fábrica)
+## Colunas explicadas (visão de manutenção industrial)
 
 | Coluna | Unidade | O que significa na prática |
 |---|---|---|

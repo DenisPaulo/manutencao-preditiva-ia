@@ -8,7 +8,7 @@
 [![CI](https://github.com/DenisPaulo/manutencao-preditiva-ia/actions/workflows/ci.yml/badge.svg)](https://github.com/DenisPaulo/manutencao-preditiva-ia/actions/workflows/ci.yml)
 
 > **Com essas leituras dos sensores, a máquina vai falhar? E por quê?**
-> Modelo de classificação de falhas com explicação de cada previsão, construído por quem vem do chão de fábrica (robôs ABB, CLP e manutenção preventiva).
+> Modelo de classificação de falhas com explicação de cada previsão, construído por quem vem da manutenção industrial (robôs ABB, CLP e manutenção preventiva).
 
 🔗 **Demo:** [abrir o painel no Streamlit Cloud](https://manutencao-preditiva-ia-3xvamtyr7vvjvcxdbsdnze.streamlit.app/)
 
@@ -60,7 +60,7 @@ Conjunto de teste: 2.000 registros, 68 falhas. Cada modelo no seu limiar escolhi
 - **AI4I antes do C-MAPSS:** a pergunta "vai falhar, sim ou não?" é mais fácil de explicar e validar numa primeira versão.
 - **Colunas de modo de falha removidas:** elas contêm a resposta e deixariam o resultado artificialmente perfeito.
 - **Ponto de corte como decisão de manutenção:** baixar o limiar pega mais falhas, mas para a máquina à toa com mais frequência. O valor escolhido e o motivo estão no [model card](models/MODEL_CARD.md).
-- **Variáveis de chão de fábrica:** potência e ΔT vêm da física do processo, não de tentativa e erro.
+- **Variáveis da manutenção industrial:** potência e ΔT vêm da física do processo, não de tentativa e erro.
 
 ## Limitações
 
